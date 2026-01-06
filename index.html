@@ -1,0 +1,1733 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Indonesian Bakery POS</title>
+  <meta name="theme-color" content="#111111" />
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --panel:#111218;
+      --panel2:#151726;
+      --text:#f4f4f5;
+      --muted:#a1a1aa;
+      --line:#23243a;
+      --brand:#f59e0b;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --warn:#f97316;
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --radius:16px;
+      --radius2:12px;
+      --tap:52px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 900px at 20% -20%, rgba(245,158,11,.20), transparent 50%),
+                  radial-gradient(1000px 800px at 120% 0%, rgba(59,130,246,.12), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    button,input,select,textarea{ font: inherit; color:inherit; }
+    a{ color:inherit; }
+
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap:14px;
+      padding: 14px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height: 120px;
+    }
+    .cardHeader{
+      padding: 12px 14px;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:3px;
+    }
+    .title h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .title p{ font-size:12px; margin:0; color:var(--muted); }
+
+    .pillRow{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      padding: 6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .pill strong{ color: var(--text); font-weight:700; }
+    .pillDot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--good);
+      box-shadow: 0 0 0 4px rgba(34,197,94,.15);
+    }
+    .pillDot.warn{
+      background: var(--warn);
+      box-shadow: 0 0 0 4px rgba(249,115,22,.18);
+    }
+
+    .content{ padding: 12px 14px; }
+
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .grow{ flex:1; }
+    .right{ margin-left:auto; }
+
+    .btn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 44px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+      transition: transform .05s ease, background .2s ease, border .2s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,.08); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(245,158,11,.95), rgba(245,158,11,.75));
+      border-color: rgba(245,158,11,.35);
+      color:#111;
+      font-weight:700;
+    }
+    .btn.danger{
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.35);
+      color: #fecaca;
+    }
+    .btn.ghost{
+      background: transparent;
+      border-color: rgba(255,255,255,.10);
+    }
+    .btn.small{ padding: 8px 10px; min-height: 38px; border-radius: 10px; font-size: 13px; }
+    .btn.tog.on{ border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.14); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .input, .select, .textarea{
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline:none;
+      min-height: 44px;
+    }
+    .textarea{ min-height: 88px; resize: vertical; }
+    .label{ font-size:12px; color:var(--muted); margin-bottom:6px; }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px){
+      .split{ grid-template-columns: 1fr; }
+    }
+
+    /* Catalog */
+    .catalogTop{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      overflow:auto;
+      padding-bottom: 6px;
+      scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      cursor:pointer;
+      user-select:none;
+      min-height: 40px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .tab.on{
+      color: var(--text);
+      border-color: rgba(245,158,11,.45);
+      background: rgba(245,158,11,.14);
+    }
+    .grid{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+    }
+    @media (max-width: 560px){
+      .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    .product{
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 12px;
+      cursor:pointer;
+      user-select:none;
+      min-height: 96px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      transition: transform .06s ease, border .2s ease, background .2s ease;
+    }
+    .product:hover{ background: rgba(255,255,255,.05); }
+    .product:active{ transform: translateY(1px); }
+    .pName{ font-weight:700; font-size:14px; }
+    .pMeta{ display:flex; justify-content:space-between; align-items:end; margin-top:8px; }
+    .pPrice{ font-family: var(--mono); font-size: 12px; color: #fde68a; }
+    .pStock{ font-size: 12px; color: var(--muted); }
+    .pStock.low{ color: #fed7aa; }
+    .badge{
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      width: fit-content;
+    }
+
+    /* Cart */
+    .cartList{ display:flex; flex-direction:column; gap:10px; }
+    .cartItem{
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      border-radius: 14px;
+      padding: 10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .cartItem .leftCol{ flex:1; min-width:0; }
+    .cartItem .name{ font-weight:700; }
+    .cartItem .sub{ font-size:12px; color: var(--muted); margin-top:2px; }
+    .qtyBox{
+      display:flex; align-items:center; gap:8px;
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      padding: 6px 8px;
+      min-height: 44px;
+    }
+    .qtyNum{ min-width: 26px; text-align:center; font-family:var(--mono); }
+    .iconBtn{
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      user-select:none;
+    }
+    .iconBtn:active{ transform: translateY(1px); }
+
+    .totals{
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .totRow{
+      display:flex; justify-content:space-between; align-items:center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .totRow strong{ color: var(--text); }
+    .totBig{
+      font-size: 18px;
+      color: var(--text);
+      font-weight:800;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top: 6px;
+    }
+
+    /* Modal */
+    .modalBackdrop{
+      position: fixed;
+      inset:0;
+      background: rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modalBackdrop.on{ display:flex; }
+    .modal{
+      width: min(980px, 100%);
+      max-height: 88vh;
+      overflow:auto;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(17,18,24,.98);
+      box-shadow: var(--shadow);
+    }
+    .modal .content{ padding: 14px; }
+    .modalTitle{
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0;
+    }
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table th,.table td{
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 10px 8px;
+      text-align:left;
+      vertical-align: top;
+    }
+    .table th{ color: var(--muted); font-weight: 700; font-size: 12px; }
+    .mono{ font-family: var(--mono); }
+    .muted{ color: var(--muted); }
+    .hint{ font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      background: rgba(17,18,24,.98);
+      border:1px solid rgba(255,255,255,.10);
+      padding: 10px 12px;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      display:none;
+      gap:10px;
+      align-items:center;
+      z-index: 60;
+      max-width: calc(100% - 28px);
+    }
+    .toast.on{ display:flex; }
+    .toast .dot{ width:8px;height:8px;border-radius:50%; background: var(--brand); }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- LEFT: CATALOG -->
+    <section class="card" id="catalogCard">
+      <div class="cardHeader">
+        <div class="title">
+          <h1 id="storeName">Indonesian Bakery POS</h1>
+          <p id="storeSub">Offline-ready • Smooth POS • Customizable</p>
+        </div>
+        <div class="pillRow">
+          <div class="pill" title="App status">
+            <span class="pillDot" id="statusDot"></span>
+            <span><strong id="statusText">Ready</strong></span>
+          </div>
+          <button class="btn small ghost" id="btnReports">Reports</button>
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="catalogTop">
+          <div class="grow">
+            <div class="label">Search</div>
+            <input class="input" id="searchInput" placeholder="Type product name..." autocomplete="off" />
+          </div>
+          <div style="min-width: 220px;">
+            <div class="label">Mode</div>
+            <div class="row">
+              <button class="btn small tog on" id="modeSale">SALE</button>
+              <button class="btn small tog" id="modeReturn">RETUR</button>
+            </div>
+            <div class="hint">RETUR will reduce sold count & increase stock.</div>
+          </div>
+        </div>
+
+        <div class="tabs" id="categoryTabs" aria-label="Categories"></div>
+
+        <div class="grid" id="productGrid"></div>
+
+        <p class="hint">Tip: Edit products/categories in <b>Settings</b>. Low stock warning is configurable.</p>
+      </div>
+    </section>
+
+    <!-- RIGHT: CART / CHECKOUT -->
+    <aside class="card" id="cartCard">
+      <div class="cardHeader">
+        <div class="title">
+          <h1>Cart</h1>
+          <p id="cartSub">Tap products to add. Long-press is not needed.</p>
+        </div>
+        <button class="btn small danger" id="btnClearCart">Clear</button>
+      </div>
+
+      <div class="content">
+        <div class="cartList" id="cartList"></div>
+
+        <div class="totals">
+          <div class="totRow"><span>Items</span><strong id="itemsCount">0</strong></div>
+          <div class="totRow"><span>Mode</span><strong id="modeLabel">SALE</strong></div>
+          <div class="totBig">
+            <span>Total</span>
+            <span class="mono" id="totalPrice">Rp 0</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <div class="label">Payment Method</div>
+          <select class="select" id="paymentMethod">
+            <option value="QRIS">QRIS</option>
+            <option value="CASH">CASH</option>
+            <option value="DEBIT">DEBIT</option>
+          </select>
+        </div>
+
+        <div class="split" style="margin-top: 10px;">
+          <div>
+            <div class="label">Paid Amount (optional)</div>
+            <input class="input" id="paidAmount" inputmode="numeric" placeholder="e.g. 50000" />
+            <p class="hint">If filled, app will calculate change (CASH).</p>
+          </div>
+          <div>
+            <div class="label">Customer Name (optional)</div>
+            <input class="input" id="customerName" placeholder="e.g. Michael" />
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div class="label">Note (optional)</div>
+          <textarea class="textarea" id="saleNote" placeholder="Order note / cashier note..."></textarea>
+        </div>
+
+        <div class="row" style="margin-top: 12px;">
+          <button class="btn primary grow" id="btnCheckout">Complete</button>
+          <button class="btn" id="btnHold">Hold</button>
+        </div>
+
+        <p class="hint" id="changeHint"></p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MODAL: SETTINGS -->
+  <div class="modalBackdrop" id="settingsModal">
+    <div class="modal">
+      <div class="cardHeader">
+        <div class="title">
+          <h1 class="modalTitle">Settings</h1>
+          <p>Customize store, products, and inventory.</p>
+        </div>
+        <div class="row">
+          <button class="btn small" id="btnExportData">Backup JSON</button>
+          <button class="btn small" id="btnImportData">Import JSON</button>
+          <button class="btn small danger" id="btnResetAll">Reset</button>
+          <button class="btn small ghost" data-close="settingsModal">Close</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="split">
+          <div>
+            <div class="label">Store Name</div>
+            <input class="input" id="setStoreName" />
+          </div>
+          <div>
+            <div class="label">Low Stock Threshold</div>
+            <input class="input" id="setLowStock" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <div class="label">Categories</div>
+          <div class="row">
+            <input class="input grow" id="newCategoryName" placeholder="Add category (e.g. Roti Isi)" />
+            <button class="btn" id="btnAddCategory">Add</button>
+          </div>
+          <p class="hint">You can delete categories (products inside will move to “Uncategorized”).</p>
+          <div id="categoryList"></div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="label">Products</div>
+          <div class="split">
+            <div>
+              <input class="input" id="pName" placeholder="Product name" />
+            </div>
+            <div>
+              <input class="input" id="pPrice" inputmode="numeric" placeholder="Price (e.g. 12000)" />
+            </div>
+            <div>
+              <select class="select" id="pCategory"></select>
+            </div>
+            <div>
+              <input class="input" id="pStock" inputmode="numeric" placeholder="Stock (e.g. 30)" />
+            </div>
+          </div>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn primary" id="btnAddProduct">Add Product</button>
+            <button class="btn" id="btnSeedDemo">Load Bakery Template</button>
+          </div>
+
+          <div style="margin-top: 12px; overflow:auto;">
+            <table class="table" id="productsTable"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REPORTS -->
+  <div class="modalBackdrop" id="reportsModal">
+    <div class="modal">
+      <div class="cardHeader">
+        <div class="title">
+          <h1 class="modalTitle">Reports</h1>
+          <p>Sales, returns, payment breakdown, daily summaries, export.</p>
+        </div>
+        <div class="row">
+          <button class="btn small" id="btnExportXLSX">Export Excel (XLSX)</button>
+          <button class="btn small" id="btnExportCSV">Export CSV</button>
+          <button class="btn small danger" id="btnClearTx">Clear Transactions</button>
+          <button class="btn small ghost" data-close="reportsModal">Close</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="split">
+          <div>
+            <div class="label">Filter Date</div>
+            <input class="input" id="filterDate" type="date" />
+            <p class="hint">Empty = show all.</p>
+          </div>
+          <div>
+            <div class="label">Quick Stats</div>
+            <div class="pillRow">
+              <div class="pill"><span class="pillDot"></span><span>Sales: <strong id="statSales">Rp 0</strong></span></div>
+              <div class="pill"><span class="pillDot warn"></span><span>Returns: <strong id="statReturns">Rp 0</strong></span></div>
+              <div class="pill"><span class="pillDot"></span><span>Net: <strong id="statNet">Rp 0</strong></span></div>
+            </div>
+            <p class="hint" id="statPayments"></p>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <div class="label">Daily Item Summary</div>
+          <div style="overflow:auto;">
+            <table class="table" id="dailySummaryTable"></table>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <div class="label">Transactions</div>
+          <div style="overflow:auto;">
+            <table class="table" id="txTable"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HELD CARTS -->
+  <div class="modalBackdrop" id="holdModal">
+    <div class="modal">
+      <div class="cardHeader">
+        <div class="title">
+          <h1 class="modalTitle">Held Carts</h1>
+          <p>Pause an order, then restore anytime.</p>
+        </div>
+        <div class="row">
+          <button class="btn small ghost" data-close="holdModal">Close</button>
+        </div>
+      </div>
+      <div class="content">
+        <div id="holdList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span class="dot"></span><span id="toastText">Saved</span></div>
+
+  <!-- SheetJS for XLSX export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    /***********************
+     * Indonesian Bakery POS
+     * Offline-first + localStorage
+     ***********************/
+
+    const LS_KEY = "ib_pos_v1";
+    const nowISO = () => new Date().toISOString();
+    const todayYMD = (d=new Date()) => {
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    };
+    const rupiah = (n) => {
+      n = Number(n || 0);
+      return "Rp " + n.toLocaleString("id-ID");
+    };
+
+    const defaultData = () => ({
+      store: { name: "Indonesian Bakery POS", lowStockThreshold: 5 },
+      categories: [
+        { id: "cat_roti_isi", name: "Roti Isi" },
+        { id: "cat_tawar", name: "Tawar" },
+        { id: "cat_selai", name: "Selai" },
+        { id: "cat_mentega", name: "Roti Mentega" },
+      ],
+      products: [
+        { id:"p1", name:"Roti Coklat", price:12000, categoryId:"cat_roti_isi", stock:30 },
+        { id:"p2", name:"Roti Keju", price:13000, categoryId:"cat_roti_isi", stock:26 },
+        { id:"p3", name:"Roti Tawar Original", price:18000, categoryId:"cat_tawar", stock:18 },
+        { id:"p4", name:"Roti Selai Strawberry", price:14000, categoryId:"cat_selai", stock:22 },
+        { id:"p5", name:"Roti Mentega Gula", price:15000, categoryId:"cat_mentega", stock:16 },
+      ],
+      transactions: [],
+      heldCarts: []
+    });
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return defaultData();
+        const parsed = JSON.parse(raw);
+        // basic migrations / safety defaults
+        parsed.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
+        parsed.categories ||= [];
+        parsed.products ||= [];
+        parsed.transactions ||= [];
+        parsed.heldCarts ||= [];
+        return parsed;
+      }catch(e){
+        console.warn("Load error", e);
+        return defaultData();
+      }
+    }
+
+    function save(){
+      localStorage.setItem(LS_KEY, JSON.stringify(state.data));
+    }
+
+    function uid(prefix="id"){
+      return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+    }
+
+    const state = {
+      data: load(),
+      ui: {
+        activeCategoryId: "all",
+        search: "",
+        mode: "SALE", // SALE or RETUR
+      },
+      cart: [], // { productId, name, price, qty, note }
+    };
+
+    /***************
+     * DOM refs
+     ***************/
+    const el = (id) => document.getElementById(id);
+
+    const statusDot = el("statusDot");
+    const statusText = el("statusText");
+    const storeName = el("storeName");
+
+    const categoryTabs = el("categoryTabs");
+    const productGrid = el("productGrid");
+    const searchInput = el("searchInput");
+
+    const modeSale = el("modeSale");
+    const modeReturn = el("modeReturn");
+    const modeLabel = el("modeLabel");
+
+    const cartList = el("cartList");
+    const itemsCount = el("itemsCount");
+    const totalPrice = el("totalPrice");
+
+    const paymentMethod = el("paymentMethod");
+    const paidAmount = el("paidAmount");
+    const customerName = el("customerName");
+    const saleNote = el("saleNote");
+    const changeHint = el("changeHint");
+
+    const settingsModal = el("settingsModal");
+    const reportsModal = el("reportsModal");
+    const holdModal = el("holdModal");
+    const toast = el("toast");
+    const toastText = el("toastText");
+
+    /***************
+     * Toast
+     ***************/
+    let toastTimer = null;
+    function showToast(msg="Saved"){
+      toastText.textContent = msg;
+      toast.classList.add("on");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=>toast.classList.remove("on"), 1600);
+    }
+
+    /***************
+     * UI helpers
+     ***************/
+    function setStatus(ok=true, text="Ready"){
+      statusDot.classList.toggle("warn", !ok);
+      statusText.textContent = text;
+    }
+
+    function getCategoryName(catId){
+      if(catId === "all") return "All";
+      if(catId === "uncat") return "Uncategorized";
+      return state.data.categories.find(c=>c.id===catId)?.name || "Unknown";
+    }
+
+    function getProduct(pid){
+      return state.data.products.find(p=>p.id===pid);
+    }
+
+    function cartTotals(){
+      const items = state.cart.reduce((a,i)=>a + i.qty, 0);
+      const total = state.cart.reduce((a,i)=>a + i.qty * i.price, 0);
+      return { items, total };
+    }
+
+    function computeChange(){
+      const { total } = cartTotals();
+      const paid = Number(paidAmount.value || 0);
+      if(!paidAmount.value) return "";
+      if(paymentMethod.value !== "CASH") return "Paid amount is mainly for CASH change.";
+      const change = paid - total;
+      if(change < 0) return `Short: ${rupiah(Math.abs(change))}`;
+      return `Change: ${rupiah(change)}`;
+    }
+
+    function refreshChangeHint(){
+      const txt = computeChange();
+      changeHint.textContent = txt;
+      changeHint.style.color = txt.includes("Short") ? "#fecaca" : "var(--muted)";
+    }
+
+    /***************
+     * Render Catalog
+     ***************/
+    function renderTabs(){
+      const cats = state.data.categories;
+      const tabs = [
+        { id:"all", name:"All" },
+        ...cats,
+        { id:"uncat", name:"Uncategorized" }
+      ];
+
+      categoryTabs.innerHTML = "";
+      tabs.forEach(t=>{
+        const b = document.createElement("button");
+        b.className = "tab" + (state.ui.activeCategoryId===t.id ? " on" : "");
+        b.textContent = t.name;
+        b.onclick = ()=>{
+          state.ui.activeCategoryId = t.id;
+          renderAll();
+        };
+        categoryTabs.appendChild(b);
+      });
+    }
+
+    function productMatches(p){
+      const s = (state.ui.search || "").trim().toLowerCase();
+      if(s && !p.name.toLowerCase().includes(s)) return false;
+      const cat = state.ui.activeCategoryId;
+      if(cat === "all") return true;
+      if(cat === "uncat") return !p.categoryId || !state.data.categories.some(c=>c.id===p.categoryId);
+      return p.categoryId === cat;
+    }
+
+    function renderProducts(){
+      const low = Number(state.data.store.lowStockThreshold || 5);
+      const products = state.data.products.filter(productMatches);
+
+      productGrid.innerHTML = "";
+      products.forEach(p=>{
+        const div = document.createElement("div");
+        div.className = "product";
+        div.onclick = ()=> addToCart(p.id);
+
+        const isLow = Number(p.stock||0) <= low;
+        div.innerHTML = `
+          <div>
+            <div class="badge">${getCategoryName(p.categoryId || "uncat")}</div>
+            <div class="pName" style="margin-top:8px;">${escapeHtml(p.name)}</div>
+          </div>
+          <div class="pMeta">
+            <div class="pPrice">${rupiah(p.price)}</div>
+            <div class="pStock ${isLow ? "low" : ""}">Stock: ${Number(p.stock||0)}</div>
+          </div>
+        `;
+        productGrid.appendChild(div);
+      });
+
+      // status warn if any low stock
+      const hasLow = state.data.products.some(p=>Number(p.stock||0) <= low);
+      setStatus(true, hasLow ? "Low stock!" : "Ready");
+      statusDot.classList.toggle("warn", hasLow);
+    }
+
+    /***************
+     * Cart
+     ***************/
+    function addToCart(productId){
+      const p = getProduct(productId);
+      if(!p) return;
+
+      // In SALE mode, prevent adding if stock is 0
+      if(state.ui.mode === "SALE" && Number(p.stock||0) <= 0){
+        showToast("Out of stock");
+        return;
+      }
+
+      const existing = state.cart.find(i=>i.productId===productId);
+      if(existing){
+        // In SALE mode, don't exceed stock
+        if(state.ui.mode === "SALE" && existing.qty + 1 > Number(p.stock||0)){
+          showToast("Stock limit reached");
+          return;
+        }
+        existing.qty += 1;
+      }else{
+        state.cart.push({
+          productId,
+          name: p.name,
+          price: Number(p.price||0),
+          qty: 1,
+          note: ""
+        });
+      }
+      renderCart();
+    }
+
+    function updateQty(productId, delta){
+      const p = getProduct(productId);
+      const item = state.cart.find(i=>i.productId===productId);
+      if(!item) return;
+
+      const next = item.qty + delta;
+      if(next <= 0){
+        state.cart = state.cart.filter(i=>i.productId!==productId);
+        renderCart();
+        return;
+      }
+
+      if(state.ui.mode === "SALE"){
+        const stock = Number(p?.stock||0);
+        if(next > stock){
+          showToast("Stock limit reached");
+          return;
+        }
+      }
+      item.qty = next;
+      renderCart();
+    }
+
+    function renderCart(){
+      cartList.innerHTML = "";
+      if(state.cart.length === 0){
+        cartList.innerHTML = `<div class="muted">Cart is empty.</div>`;
+      }else{
+        state.cart.forEach(item=>{
+          const wrap = document.createElement("div");
+          wrap.className = "cartItem";
+          wrap.innerHTML = `
+            <div class="leftCol">
+              <div class="name">${escapeHtml(item.name)}</div>
+              <div class="sub mono">${rupiah(item.price)} • Subtotal: ${rupiah(item.price * item.qty)}</div>
+              <div style="margin-top:8px;">
+                <input class="input" data-note="${item.productId}" placeholder="Item note (optional)" value="${escapeAttr(item.note||"")}" />
+              </div>
+            </div>
+            <div class="qtyBox">
+              <div class="iconBtn" data-dec="${item.productId}">−</div>
+              <div class="qtyNum">${item.qty}</div>
+              <div class="iconBtn" data-inc="${item.productId}">+</div>
+            </div>
+          `;
+          cartList.appendChild(wrap);
+        });
+
+        // bind events (fast enough for typical cart size)
+        cartList.querySelectorAll("[data-dec]").forEach(b=>{
+          b.onclick = ()=> updateQty(b.getAttribute("data-dec"), -1);
+        });
+        cartList.querySelectorAll("[data-inc]").forEach(b=>{
+          b.onclick = ()=> updateQty(b.getAttribute("data-inc"), +1);
+        });
+        cartList.querySelectorAll("[data-note]").forEach(inp=>{
+          inp.oninput = ()=>{
+            const pid = inp.getAttribute("data-note");
+            const it = state.cart.find(i=>i.productId===pid);
+            if(it) it.note = inp.value;
+          };
+        });
+      }
+
+      const { items, total } = cartTotals();
+      itemsCount.textContent = String(items);
+      totalPrice.textContent = rupiah(total);
+      modeLabel.textContent = state.ui.mode;
+
+      refreshChangeHint();
+      renderProducts(); // update low stock dot quickly
+    }
+
+    function clearCart(){
+      state.cart = [];
+      paidAmount.value = "";
+      customerName.value = "";
+      saleNote.value = "";
+      renderCart();
+    }
+
+    /***************
+     * Checkout logic
+     ***************/
+    function applyStockAndRecordTx(){
+      const { total } = cartTotals();
+      const method = paymentMethod.value;
+      const mode = state.ui.mode;
+
+      const tx = {
+        id: uid("tx"),
+        createdAt: nowISO(),
+        date: todayYMD(),
+        type: mode, // SALE or RETUR
+        paymentMethod: method,
+        total,
+        paidAmount: paidAmount.value ? Number(paidAmount.value||0) : null,
+        customerName: customerName.value?.trim() || "",
+        note: saleNote.value?.trim() || "",
+        items: state.cart.map(i=>({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          qty: i.qty,
+          note: i.note || ""
+        }))
+      };
+
+      // Stock impact:
+      // SALE: stock decreases by qty
+      // RETUR: stock increases by qty (customer returning items or supplier return you can adapt)
+      for(const it of state.cart){
+        const p = getProduct(it.productId);
+        if(!p) continue;
+        const q = Number(it.qty||0);
+        if(mode === "SALE"){
+          p.stock = Math.max(0, Number(p.stock||0) - q);
+        }else{
+          p.stock = Number(p.stock||0) + q;
+        }
+      }
+
+      state.data.transactions.unshift(tx);
+      save();
+      showToast(mode === "SALE" ? "Sale saved" : "Return saved");
+      clearCart();
+      renderAll();
+    }
+
+    function checkout(){
+      if(state.cart.length === 0){
+        showToast("Cart empty");
+        return;
+      }
+      // Basic validation
+      const { total } = cartTotals();
+
+      if(state.ui.mode === "SALE"){
+        // ensure no stock issues
+        for(const it of state.cart){
+          const p = getProduct(it.productId);
+          if(!p) continue;
+          if(it.qty > Number(p.stock||0)){
+            showToast("Stock changed. Adjust cart.");
+            renderCart();
+            return;
+          }
+        }
+      }
+
+      // cash: warn if paid filled but not enough
+      if(paymentMethod.value === "CASH" && paidAmount.value){
+        const paid = Number(paidAmount.value||0);
+        if(paid < total){
+          showToast("Cash is short");
+          return;
+        }
+      }
+
+      applyStockAndRecordTx();
+    }
+
+    /***************
+     * Hold carts
+     ***************/
+    function holdCart(){
+      if(state.cart.length === 0){
+        showToast("Nothing to hold");
+        return;
+      }
+      const held = {
+        id: uid("hold"),
+        createdAt: nowISO(),
+        mode: state.ui.mode,
+        paymentMethod: paymentMethod.value,
+        customerName: customerName.value?.trim() || "",
+        note: saleNote.value?.trim() || "",
+        cart: JSON.parse(JSON.stringify(state.cart))
+      };
+      state.data.heldCarts.unshift(held);
+      save();
+      showToast("Cart held");
+      clearCart();
+    }
+
+    function openHoldModal(){
+      renderHoldList();
+      holdModal.classList.add("on");
+    }
+
+    function renderHoldList(){
+      const wrap = el("holdList");
+      const holds = state.data.heldCarts || [];
+      if(holds.length === 0){
+        wrap.innerHTML = `<div class="muted">No held carts.</div>`;
+        return;
+      }
+      wrap.innerHTML = "";
+      holds.forEach(h=>{
+        const div = document.createElement("div");
+        div.className = "cartItem";
+        const total = (h.cart||[]).reduce((a,i)=>a + i.qty*i.price, 0);
+        div.innerHTML = `
+          <div class="leftCol">
+            <div class="name">${escapeHtml(h.customerName || "Held Order")}</div>
+            <div class="sub muted">${new Date(h.createdAt).toLocaleString("id-ID")} • ${h.mode} • ${h.paymentMethod}</div>
+            <div class="sub mono">Total: ${rupiah(total)} • Items: ${(h.cart||[]).reduce((a,i)=>a+i.qty,0)}</div>
+            <div class="sub muted">${escapeHtml(h.note || "")}</div>
+          </div>
+          <div class="row" style="gap:8px;">
+            <button class="btn small" data-restore="${h.id}">Restore</button>
+            <button class="btn small danger" data-del="${h.id}">Delete</button>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+
+      wrap.querySelectorAll("[data-restore]").forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.getAttribute("data-restore");
+          const h = state.data.heldCarts.find(x=>x.id===id);
+          if(!h) return;
+          state.cart = JSON.parse(JSON.stringify(h.cart||[]));
+          state.ui.mode = h.mode || "SALE";
+          paymentMethod.value = h.paymentMethod || "QRIS";
+          customerName.value = h.customerName || "";
+          saleNote.value = h.note || "";
+          // remove hold after restore
+          state.data.heldCarts = state.data.heldCarts.filter(x=>x.id!==id);
+          save();
+          showToast("Restored");
+          holdModal.classList.remove("on");
+          syncModeButtons();
+          renderCart();
+        };
+      });
+
+      wrap.querySelectorAll("[data-del]").forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.getAttribute("data-del");
+          state.data.heldCarts = state.data.heldCarts.filter(x=>x.id!==id);
+          save();
+          showToast("Deleted");
+          renderHoldList();
+        };
+      });
+    }
+
+    /***************
+     * Settings
+     ***************/
+    function openSettings(){
+      el("setStoreName").value = state.data.store.name || "";
+      el("setLowStock").value = String(state.data.store.lowStockThreshold ?? 5);
+      refreshCategorySelects();
+      renderCategoryList();
+      renderProductsTable();
+      settingsModal.classList.add("on");
+    }
+
+    function refreshCategorySelects(){
+      const sel = el("pCategory");
+      sel.innerHTML = "";
+      const opt0 = document.createElement("option");
+      opt0.value = "";
+      opt0.textContent = "Uncategorized";
+      sel.appendChild(opt0);
+      state.data.categories.forEach(c=>{
+        const o = document.createElement("option");
+        o.value = c.id;
+        o.textContent = c.name;
+        sel.appendChild(o);
+      });
+    }
+
+    function renderCategoryList(){
+      const wrap = el("categoryList");
+      const cats = state.data.categories;
+      if(cats.length === 0){
+        wrap.innerHTML = `<div class="muted">No categories.</div>`;
+        return;
+      }
+      wrap.innerHTML = "";
+      cats.forEach(c=>{
+        const row = document.createElement("div");
+        row.className = "row";
+        row.style.marginTop = "10px";
+        row.innerHTML = `
+          <div class="pill"><strong>${escapeHtml(c.name)}</strong><span class="muted mono">${c.id}</span></div>
+          <button class="btn small danger" data-delcat="${c.id}">Delete</button>
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll("[data-delcat]").forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.getAttribute("data-delcat");
+          // remove category
+          state.data.categories = state.data.categories.filter(c=>c.id!==id);
+          // products become uncategorized
+          state.data.products.forEach(p=>{
+            if(p.categoryId === id) p.categoryId = "";
+          });
+          save();
+          showToast("Category deleted");
+          refreshCategorySelects();
+          renderTabs();
+          renderCategoryList();
+          renderProductsTable();
+          renderProducts();
+        };
+      });
+    }
+
+    function renderProductsTable(){
+      const t = el("productsTable");
+      const low = Number(state.data.store.lowStockThreshold || 5);
+      const rows = state.data.products.slice().sort((a,b)=>a.name.localeCompare(b.name));
+
+      t.innerHTML = `
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th class="mono">Price</th>
+            <th class="mono">Stock</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(p=>{
+            const isLow = Number(p.stock||0) <= low;
+            return `
+              <tr>
+                <td><b>${escapeHtml(p.name)}</b><div class="muted mono">${p.id}</div></td>
+                <td>${escapeHtml(getCategoryName(p.categoryId || "uncat"))}</td>
+                <td class="mono">${rupiah(p.price)}</td>
+                <td class="mono" style="${isLow ? "color:#fed7aa;" : ""}">${Number(p.stock||0)}</td>
+                <td>
+                  <button class="btn small" data-edit="${p.id}">Edit</button>
+                  <button class="btn small danger" data-del="${p.id}">Delete</button>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      `;
+
+      t.querySelectorAll("[data-del]").forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.getAttribute("data-del");
+          state.data.products = state.data.products.filter(p=>p.id!==id);
+          // also remove from cart
+          state.cart = state.cart.filter(i=>i.productId!==id);
+          save();
+          showToast("Product deleted");
+          renderProductsTable();
+          renderProducts();
+          renderCart();
+        };
+      });
+
+      t.querySelectorAll("[data-edit]").forEach(b=>{
+        b.onclick = ()=>{
+          const id = b.getAttribute("data-edit");
+          const p = getProduct(id);
+          if(!p) return;
+          const name = prompt("Product name:", p.name);
+          if(name === null) return;
+          const price = prompt("Price:", String(p.price));
+          if(price === null) return;
+          const stock = prompt("Stock:", String(p.stock));
+          if(stock === null) return;
+
+          p.name = String(name).trim() || p.name;
+          p.price = Number(price) || 0;
+          p.stock = Math.max(0, Number(stock)||0);
+          save();
+          showToast("Updated");
+          renderProductsTable();
+          renderProducts();
+          renderCart();
+        };
+      });
+    }
+
+    function addCategory(){
+      const name = el("newCategoryName").value.trim();
+      if(!name) return;
+      state.data.categories.push({ id: uid("cat"), name });
+      el("newCategoryName").value = "";
+      save();
+      showToast("Category added");
+      refreshCategorySelects();
+      renderTabs();
+      renderCategoryList();
+    }
+
+    function addProduct(){
+      const name = el("pName").value.trim();
+      const price = Number(el("pPrice").value || 0);
+      const cat = el("pCategory").value;
+      const stock = Number(el("pStock").value || 0);
+
+      if(!name){
+        showToast("Name required");
+        return;
+      }
+
+      state.data.products.push({
+        id: uid("p"),
+        name,
+        price: Math.max(0, price),
+        categoryId: cat || "",
+        stock: Math.max(0, stock)
+      });
+      el("pName").value = "";
+      el("pPrice").value = "";
+      el("pStock").value = "";
+      save();
+      showToast("Product added");
+      renderProductsTable();
+      renderProducts();
+    }
+
+    function seedDemo(){
+      // Bakery template (you can replace names/prices)
+      state.data.categories = [
+        { id: "cat_roti_isi", name: "Roti Isi" },
+        { id: "cat_tawar", name: "Tawar" },
+        { id: "cat_selai", name: "Selai" },
+        { id: "cat_mentega", name: "Roti Mentega" },
+      ];
+      state.data.products = [
+        { id:"p_coklat", name:"Roti Coklat", price:12000, categoryId:"cat_roti_isi", stock:30 },
+        { id:"p_keju", name:"Roti Keju", price:13000, categoryId:"cat_roti_isi", stock:26 },
+        { id:"p_sosis", name:"Roti Sosis", price:14000, categoryId:"cat_roti_isi", stock:18 },
+        { id:"p_tawar", name:"Roti Tawar Original", price:18000, categoryId:"cat_tawar", stock:18 },
+        { id:"p_tawar_susu", name:"Roti Tawar Susu", price:20000, categoryId:"cat_tawar", stock:14 },
+        { id:"p_selai_straw", name:"Roti Selai Strawberry", price:14000, categoryId:"cat_selai", stock:22 },
+        { id:"p_selai_kaya", name:"Roti Selai Kaya", price:15000, categoryId:"cat_selai", stock:12 },
+        { id:"p_mentega", name:"Roti Mentega Gula", price:15000, categoryId:"cat_mentega", stock:16 },
+      ];
+      save();
+      showToast("Template loaded");
+      refreshCategorySelects();
+      renderTabs();
+      renderCategoryList();
+      renderProductsTable();
+      renderProducts();
+    }
+
+    function backupJSON(){
+      const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ib-pos-backup-${todayYMD()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function importJSON(){
+      const inp = document.createElement("input");
+      inp.type = "file";
+      inp.accept = "application/json";
+      inp.onchange = async () => {
+        const file = inp.files?.[0];
+        if(!file) return;
+        try{
+          const txt = await file.text();
+          const data = JSON.parse(txt);
+          // minimal validation
+          if(!data || typeof data !== "object") throw new Error("Invalid JSON");
+          data.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
+          data.categories ||= [];
+          data.products ||= [];
+          data.transactions ||= [];
+          data.heldCarts ||= [];
+          state.data = data;
+          save();
+          showToast("Imported");
+          renderAll();
+          openSettings(); // refresh view
+        }catch(e){
+          alert("Import failed: " + e.message);
+        }
+      };
+      inp.click();
+    }
+
+    function resetAll(){
+      if(!confirm("Reset ALL data (products, transactions, settings)?")) return;
+      state.data = defaultData();
+      state.cart = [];
+      state.ui.activeCategoryId = "all";
+      state.ui.search = "";
+      state.ui.mode = "SALE";
+      save();
+      showToast("Reset done");
+      settingsModal.classList.remove("on");
+      renderAll();
+    }
+
+    /***************
+     * Reports
+     ***************/
+    function openReports(){
+      // default date empty
+      el("filterDate").value = "";
+      renderReports();
+      reportsModal.classList.add("on");
+    }
+
+    function filteredTx(){
+      const d = el("filterDate").value;
+      if(!d) return state.data.transactions;
+      return state.data.transactions.filter(t=>t.date === d);
+    }
+
+    function summarizePayments(txs){
+      const by = { QRIS:0, CASH:0, DEBIT:0 };
+      txs.forEach(t=>{
+        const sign = (t.type === "SALE") ? 1 : -1;
+        by[t.paymentMethod] = (by[t.paymentMethod] || 0) + sign * Number(t.total||0);
+      });
+      return by;
+    }
+
+    function renderReports(){
+      const txs = filteredTx();
+
+      let sales = 0, returns = 0;
+      txs.forEach(t=>{
+        if(t.type === "SALE") sales += Number(t.total||0);
+        else returns += Number(t.total||0);
+      });
+      const net = sales - returns;
+
+      el("statSales").textContent = rupiah(sales);
+      el("statReturns").textContent = rupiah(returns);
+      el("statNet").textContent = rupiah(net);
+
+      const pay = summarizePayments(txs);
+      el("statPayments").textContent =
+        `Payments (net): QRIS ${rupiah(pay.QRIS)} • CASH ${rupiah(pay.CASH)} • DEBIT ${rupiah(pay.DEBIT)}`;
+
+      renderDailySummaryTable(txs);
+      renderTxTable(txs);
+    }
+
+    function renderDailySummaryTable(txs){
+      // Build: date -> itemName -> qtySoldNet
+      // SALE adds qty, RETUR subtracts qty
+      const map = new Map();
+
+      for(const t of txs){
+        const sign = (t.type === "SALE") ? 1 : -1;
+        const day = t.date || (t.createdAt ? t.createdAt.slice(0,10) : "unknown");
+        if(!map.has(day)) map.set(day, new Map());
+        const dayMap = map.get(day);
+        for(const it of (t.items||[])){
+          const key = it.name;
+          dayMap.set(key, (dayMap.get(key) || 0) + sign * Number(it.qty||0));
+        }
+      }
+
+      // Flatten into rows sorted by date desc
+      const days = Array.from(map.keys()).sort().reverse();
+      const rows = [];
+      days.forEach(day=>{
+        const dayMap = map.get(day);
+        Array.from(dayMap.entries())
+          .sort((a,b)=>a[0].localeCompare(b[0]))
+          .forEach(([name, qty])=>{
+            rows.push({ date: day, item: name, qty: qty });
+          });
+      });
+
+      const t = el("dailySummaryTable");
+      if(rows.length === 0){
+        t.innerHTML = `<thead><tr><th class="muted">No data</th></tr></thead>`;
+        return;
+      }
+
+      t.innerHTML = `
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Item</th>
+            <th class="mono">Qty (net)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td class="mono">${escapeHtml(r.date)}</td>
+              <td>${escapeHtml(r.item)}</td>
+              <td class="mono" style="${r.qty < 0 ? "color:#fecaca;" : ""}">${r.qty}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      `;
+    }
+
+    function renderTxTable(txs){
+      const t = el("txTable");
+      if(txs.length === 0){
+        t.innerHTML = `<thead><tr><th class="muted">No transactions yet</th></tr></thead>`;
+        return;
+      }
+
+      t.innerHTML = `
+        <thead>
+          <tr>
+            <th>Date/Time</th>
+            <th>Type</th>
+            <th>Payment</th>
+            <th class="mono">Total</th>
+            <th>Items</th>
+            <th>Customer</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${txs.map(tx=>{
+            const dt = new Date(tx.createdAt);
+            const items = (tx.items||[]).map(i=>`${i.qty}× ${i.name}`).join(", ");
+            return `
+              <tr>
+                <td>
+                  <div class="mono">${escapeHtml(tx.date || "")}</div>
+                  <div class="muted">${dt.toLocaleTimeString("id-ID")}</div>
+                </td>
+                <td style="${tx.type==='RETUR' ? "color:#fed7aa;" : ""}"><b>${tx.type}</b></td>
+                <td><b>${tx.paymentMethod}</b></td>
+                <td class="mono">${rupiah(tx.total)}</td>
+                <td>${escapeHtml(items)}</td>
+                <td>${escapeHtml(tx.customerName||"")}</td>
+                <td class="muted">${escapeHtml(tx.note||"")}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      `;
+    }
+
+    function clearTransactions(){
+      if(!confirm("Clear ALL transactions? (This cannot be undone)")) return;
+      state.data.transactions = [];
+      save();
+      showToast("Transactions cleared");
+      renderReports();
+    }
+
+    function exportCSV(){
+      const txs = state.data.transactions.slice().reverse();
+      const rows = [];
+      rows.push([
+        "id","createdAt","date","type","paymentMethod","total","paidAmount","customerName","note","items"
+      ]);
+      txs.forEach(t=>{
+        const items = (t.items||[]).map(i=>`${i.qty}x ${i.name}`).join(" | ");
+        rows.push([
+          t.id, t.createdAt, t.date, t.type, t.paymentMethod, t.total,
+          t.paidAmount ?? "", t.customerName ?? "", (t.note ?? "").replace(/\n/g," "),
+          items
+        ]);
+      });
+
+      const csv = rows.map(r=>r.map(v=>{
+        const s = String(v ?? "");
+        if(s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g,'""')}"`;
+        return s;
+      }).join(",")).join("\n");
+
+      const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ib-pos-transactions-${todayYMD()}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportXLSX(){
+      const txs = state.data.transactions.slice().reverse();
+      const txSheet = txs.map(t=>({
+        id: t.id,
+        createdAt: t.createdAt,
+        date: t.date,
+        type: t.type,
+        paymentMethod: t.paymentMethod,
+        total: t.total,
+        paidAmount: t.paidAmount ?? "",
+        customerName: t.customerName ?? "",
+        note: t.note ?? ""
+      }));
+
+      const itemsSheet = [];
+      txs.forEach(t=>{
+        (t.items||[]).forEach(it=>{
+          itemsSheet.push({
+            txId: t.id,
+            date: t.date,
+            type: t.type,
+            paymentMethod: t.paymentMethod,
+            itemName: it.name,
+            qty: it.qty,
+            price: it.price,
+            lineTotal: Number(it.qty||0)*Number(it.price||0),
+            itemNote: it.note || ""
+          });
+        });
+      });
+
+      // Daily summary net
+      const temp = document.createElement("div");
+      // reuse computation from current filter? better full: compute from all tx
+      const map = new Map();
+      for(const t of txs){
+        const sign = (t.type === "SALE") ? 1 : -1;
+        const day = t.date || (t.createdAt ? t.createdAt.slice(0,10) : "unknown");
+        if(!map.has(day)) map.set(day, new Map());
+        const dayMap = map.get(day);
+        for(const it of (t.items||[])){
+          dayMap.set(it.name, (dayMap.get(it.name) || 0) + sign * Number(it.qty||0));
+        }
+      }
+      const dailySheet = [];
+      Array.from(map.keys()).sort().forEach(day=>{
+        const dayMap = map.get(day);
+        Array.from(dayMap.entries()).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name, qty])=>{
+          dailySheet.push({ date: day, item: name, qtyNet: qty });
+        });
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(txSheet), "Transactions");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(itemsSheet), "TransactionItems");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailySheet), "DailySummary");
+      XLSX.writeFile(wb, `ib-pos-${todayYMD()}.xlsx`);
+    }
+
+    /***************
+     * Mode toggles
+     ***************/
+    function syncModeButtons(){
+      modeSale.classList.toggle("on", state.ui.mode === "SALE");
+      modeReturn.classList.toggle("on", state.ui.mode === "RETUR");
+      modeLabel.textContent = state.ui.mode;
+      el("cartSub").textContent = state.ui.mode === "SALE"
+        ? "Tap products to add. Stock decreases on checkout."
+        : "RETUR mode: stock increases on checkout.";
+    }
+
+    /***************
+     * Render all
+     ***************/
+    function renderAll(){
+      state.data.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
+      storeName.textContent = state.data.store.name || "Indonesian Bakery POS";
+      renderTabs();
+      renderProducts();
+      renderCart();
+    }
+
+    /***************
+     * Events
+     ***************/
+    el("btnSettings").onclick = openSettings;
+    el("btnReports").onclick = openReports;
+
+    document.querySelectorAll("[data-close]").forEach(b=>{
+      b.onclick = ()=> el(b.getAttribute("data-close")).classList.remove("on");
+    });
+
+    el("btnClearCart").onclick = ()=>{
+      if(state.cart.length===0) return;
+      if(!confirm("Clear cart?")) return;
+      clearCart();
+    };
+
+    searchInput.oninput = ()=>{
+      state.ui.search = searchInput.value;
+      renderProducts();
+    };
+
+    modeSale.onclick = ()=>{
+      state.ui.mode = "SALE";
+      syncModeButtons();
+      // validate cart quantities against stock
+      state.cart = state.cart.filter(it=>{
+        const p = getProduct(it.productId);
+        if(!p) return false;
+        if(it.qty > Number(p.stock||0)){
+          it.qty = Math.max(1, Number(p.stock||0));
+        }
+        return it.qty > 0;
+      });
+      renderCart();
+    };
+
+    modeReturn.onclick = ()=>{
+      state.ui.mode = "RETUR";
+      syncModeButtons();
+      renderCart();
+    };
+
+    paymentMethod.onchange = refreshChangeHint;
+    paidAmount.oninput = refreshChangeHint;
+
+    el("btnCheckout").onclick = checkout;
+    el("btnHold").onclick = ()=>{
+      // first click opens modal if already have holds and cart empty
+      if(state.cart.length===0 && (state.data.heldCarts||[]).length>0){
+        openHoldModal();
+        return;
+      }
+      // otherwise hold current cart
+      holdCart();
+      // open hold list after holding
+      openHoldModal();
+    };
+
+    // Settings actions
+    el("btnAddCategory").onclick = addCategory;
+    el("btnAddProduct").onclick = addProduct;
+    el("btnSeedDemo").onclick = seedDemo;
+
+    el("setStoreName").oninput = ()=>{
+      state.data.store.name = el("setStoreName").value;
+      save();
+      renderAll();
+    };
+    el("setLowStock").oninput = ()=>{
+      const v = Number(el("setLowStock").value || 5);
+      state.data.store.lowStockThreshold = Math.max(0, v);
+      save();
+      renderProducts();
+      renderProductsTable();
+    };
+
+    el("btnExportData").onclick = backupJSON;
+    el("btnImportData").onclick = importJSON;
+    el("btnResetAll").onclick = resetAll;
+
+    // Reports actions
+    el("filterDate").onchange = renderReports;
+    el("btnClearTx").onclick = clearTransactions;
+    el("btnExportCSV").onclick = exportCSV;
+    el("btnExportXLSX").onclick = exportXLSX;
+
+    // close modal when tap outside
+    [settingsModal, reportsModal, holdModal].forEach(m=>{
+      m.addEventListener("click", (e)=>{
+        if(e.target === m) m.classList.remove("on");
+      });
+    });
+
+    /***************
+     * Utils: safe HTML
+     ***************/
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+    function escapeAttr(str){
+      // for input value attrs
+      return escapeHtml(str).replaceAll("\n"," ");
+    }
+
+    /***************
+     * Boot
+     ***************/
+    syncModeButtons();
+    renderAll();
+    setStatus(true, "Ready");
+
+  </script>
+</body>
+</html>
