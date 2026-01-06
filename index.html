@@ -25,7 +25,15 @@
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
     }
     *{ box-sizing:border-box; }
-    html,body{ height:100%; }
+
+    /* ✅ iPad/Safari scroll fix */
+    html, body {
+      height: auto;
+      min-height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     body{
       margin:0;
       font-family:var(--sans);
@@ -40,7 +48,10 @@
     a{ color:inherit; }
 
     .app{
-      height:100%;
+      /* ✅ iPad/Safari scroll fix */
+      min-height: 100vh;
+      height: auto;
+
       display:grid;
       grid-template-columns: 1.5fr 1fr;
       gap:14px;
@@ -58,6 +69,9 @@
       box-shadow: var(--shadow);
       overflow:hidden;
       min-height: 120px;
+
+      /* ✅ iPad/Safari scroll fix */
+      max-height: none;
     }
     .cardHeader{
       padding: 12px 14px;
@@ -97,7 +111,12 @@
       box-shadow: 0 0 0 4px rgba(249,115,22,.18);
     }
 
-    .content{ padding: 12px 14px; }
+    .content{
+      padding: 12px 14px;
+
+      /* ✅ iPad/Safari scroll fix */
+      overflow: visible;
+    }
 
     .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .grow{ flex:1; }
@@ -310,6 +329,7 @@
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(17,18,24,.98);
       box-shadow: var(--shadow);
+      -webkit-overflow-scrolling: touch;
     }
     .modal .content{ padding: 14px; }
     .modalTitle{
@@ -596,21 +616,13 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script>
-    /***********************
-     * Indonesian Bakery POS
-     * Offline-first + localStorage
-     ***********************/
-
     const LS_KEY = "ib_pos_v1";
     const nowISO = () => new Date().toISOString();
     const todayYMD = (d=new Date()) => {
       const pad = n => String(n).padStart(2,'0');
       return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     };
-    const rupiah = (n) => {
-      n = Number(n || 0);
-      return "Rp " + n.toLocaleString("id-ID");
-    };
+    const rupiah = (n) => "Rp " + Number(n||0).toLocaleString("id-ID");
 
     const defaultData = () => ({
       store: { name: "Indonesian Bakery POS", lowStockThreshold: 5 },
@@ -636,7 +648,6 @@
         const raw = localStorage.getItem(LS_KEY);
         if(!raw) return defaultData();
         const parsed = JSON.parse(raw);
-        // basic migrations / safety defaults
         parsed.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
         parsed.categories ||= [];
         parsed.products ||= [];
@@ -644,32 +655,18 @@
         parsed.heldCarts ||= [];
         return parsed;
       }catch(e){
-        console.warn("Load error", e);
         return defaultData();
       }
     }
-
-    function save(){
-      localStorage.setItem(LS_KEY, JSON.stringify(state.data));
-    }
-
-    function uid(prefix="id"){
-      return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-    }
+    function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state.data)); }
+    function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
 
     const state = {
       data: load(),
-      ui: {
-        activeCategoryId: "all",
-        search: "",
-        mode: "SALE", // SALE or RETUR
-      },
-      cart: [], // { productId, name, price, qty, note }
+      ui: { activeCategoryId: "all", search: "", mode: "SALE" },
+      cart: [],
     };
 
-    /***************
-     * DOM refs
-     ***************/
     const el = (id) => document.getElementById(id);
 
     const statusDot = el("statusDot");
@@ -700,9 +697,6 @@
     const toast = el("toast");
     const toastText = el("toastText");
 
-    /***************
-     * Toast
-     ***************/
     let toastTimer = null;
     function showToast(msg="Saved"){
       toastText.textContent = msg;
@@ -711,9 +705,6 @@
       toastTimer = setTimeout(()=>toast.classList.remove("on"), 1600);
     }
 
-    /***************
-     * UI helpers
-     ***************/
     function setStatus(ok=true, text="Ready"){
       statusDot.classList.toggle("warn", !ok);
       statusText.textContent = text;
@@ -724,10 +715,7 @@
       if(catId === "uncat") return "Uncategorized";
       return state.data.categories.find(c=>c.id===catId)?.name || "Unknown";
     }
-
-    function getProduct(pid){
-      return state.data.products.find(p=>p.id===pid);
-    }
+    function getProduct(pid){ return state.data.products.find(p=>p.id===pid); }
 
     function cartTotals(){
       const items = state.cart.reduce((a,i)=>a + i.qty, 0);
@@ -744,33 +732,21 @@
       if(change < 0) return `Short: ${rupiah(Math.abs(change))}`;
       return `Change: ${rupiah(change)}`;
     }
-
     function refreshChangeHint(){
       const txt = computeChange();
       changeHint.textContent = txt;
       changeHint.style.color = txt.includes("Short") ? "#fecaca" : "var(--muted)";
     }
 
-    /***************
-     * Render Catalog
-     ***************/
     function renderTabs(){
       const cats = state.data.categories;
-      const tabs = [
-        { id:"all", name:"All" },
-        ...cats,
-        { id:"uncat", name:"Uncategorized" }
-      ];
-
+      const tabs = [{ id:"all", name:"All" }, ...cats, { id:"uncat", name:"Uncategorized" }];
       categoryTabs.innerHTML = "";
       tabs.forEach(t=>{
         const b = document.createElement("button");
         b.className = "tab" + (state.ui.activeCategoryId===t.id ? " on" : "");
         b.textContent = t.name;
-        b.onclick = ()=>{
-          state.ui.activeCategoryId = t.id;
-          renderAll();
-        };
+        b.onclick = ()=>{ state.ui.activeCategoryId = t.id; renderAll(); };
         categoryTabs.appendChild(b);
       });
     }
@@ -787,8 +763,8 @@
     function renderProducts(){
       const low = Number(state.data.store.lowStockThreshold || 5);
       const products = state.data.products.filter(productMatches);
-
       productGrid.innerHTML = "";
+
       products.forEach(p=>{
         const div = document.createElement("div");
         div.className = "product";
@@ -808,20 +784,15 @@
         productGrid.appendChild(div);
       });
 
-      // status warn if any low stock
       const hasLow = state.data.products.some(p=>Number(p.stock||0) <= low);
       setStatus(true, hasLow ? "Low stock!" : "Ready");
       statusDot.classList.toggle("warn", hasLow);
     }
 
-    /***************
-     * Cart
-     ***************/
     function addToCart(productId){
       const p = getProduct(productId);
       if(!p) return;
 
-      // In SALE mode, prevent adding if stock is 0
       if(state.ui.mode === "SALE" && Number(p.stock||0) <= 0){
         showToast("Out of stock");
         return;
@@ -829,20 +800,13 @@
 
       const existing = state.cart.find(i=>i.productId===productId);
       if(existing){
-        // In SALE mode, don't exceed stock
         if(state.ui.mode === "SALE" && existing.qty + 1 > Number(p.stock||0)){
           showToast("Stock limit reached");
           return;
         }
         existing.qty += 1;
       }else{
-        state.cart.push({
-          productId,
-          name: p.name,
-          price: Number(p.price||0),
-          qty: 1,
-          note: ""
-        });
+        state.cart.push({ productId, name: p.name, price: Number(p.price||0), qty: 1, note: "" });
       }
       renderCart();
     }
@@ -858,13 +822,9 @@
         renderCart();
         return;
       }
-
       if(state.ui.mode === "SALE"){
         const stock = Number(p?.stock||0);
-        if(next > stock){
-          showToast("Stock limit reached");
-          return;
-        }
+        if(next > stock){ showToast("Stock limit reached"); return; }
       }
       item.qty = next;
       renderCart();
@@ -895,13 +855,8 @@
           cartList.appendChild(wrap);
         });
 
-        // bind events (fast enough for typical cart size)
-        cartList.querySelectorAll("[data-dec]").forEach(b=>{
-          b.onclick = ()=> updateQty(b.getAttribute("data-dec"), -1);
-        });
-        cartList.querySelectorAll("[data-inc]").forEach(b=>{
-          b.onclick = ()=> updateQty(b.getAttribute("data-inc"), +1);
-        });
+        cartList.querySelectorAll("[data-dec]").forEach(b=> b.onclick = ()=> updateQty(b.getAttribute("data-dec"), -1));
+        cartList.querySelectorAll("[data-inc]").forEach(b=> b.onclick = ()=> updateQty(b.getAttribute("data-inc"), +1));
         cartList.querySelectorAll("[data-note]").forEach(inp=>{
           inp.oninput = ()=>{
             const pid = inp.getAttribute("data-note");
@@ -915,9 +870,8 @@
       itemsCount.textContent = String(items);
       totalPrice.textContent = rupiah(total);
       modeLabel.textContent = state.ui.mode;
-
       refreshChangeHint();
-      renderProducts(); // update low stock dot quickly
+      renderProducts();
     }
 
     function clearCart(){
@@ -928,9 +882,6 @@
       renderCart();
     }
 
-    /***************
-     * Checkout logic
-     ***************/
     function applyStockAndRecordTx(){
       const { total } = cartTotals();
       const method = paymentMethod.value;
@@ -940,33 +891,21 @@
         id: uid("tx"),
         createdAt: nowISO(),
         date: todayYMD(),
-        type: mode, // SALE or RETUR
+        type: mode,
         paymentMethod: method,
         total,
         paidAmount: paidAmount.value ? Number(paidAmount.value||0) : null,
         customerName: customerName.value?.trim() || "",
         note: saleNote.value?.trim() || "",
-        items: state.cart.map(i=>({
-          productId: i.productId,
-          name: i.name,
-          price: i.price,
-          qty: i.qty,
-          note: i.note || ""
-        }))
+        items: state.cart.map(i=>({ productId:i.productId, name:i.name, price:i.price, qty:i.qty, note:i.note||"" }))
       };
 
-      // Stock impact:
-      // SALE: stock decreases by qty
-      // RETUR: stock increases by qty (customer returning items or supplier return you can adapt)
       for(const it of state.cart){
         const p = getProduct(it.productId);
         if(!p) continue;
         const q = Number(it.qty||0);
-        if(mode === "SALE"){
-          p.stock = Math.max(0, Number(p.stock||0) - q);
-        }else{
-          p.stock = Number(p.stock||0) + q;
-        }
+        if(mode === "SALE") p.stock = Math.max(0, Number(p.stock||0) - q);
+        else p.stock = Number(p.stock||0) + q;
       }
 
       state.data.transactions.unshift(tx);
@@ -977,15 +916,10 @@
     }
 
     function checkout(){
-      if(state.cart.length === 0){
-        showToast("Cart empty");
-        return;
-      }
-      // Basic validation
+      if(state.cart.length === 0){ showToast("Cart empty"); return; }
       const { total } = cartTotals();
 
       if(state.ui.mode === "SALE"){
-        // ensure no stock issues
         for(const it of state.cart){
           const p = getProduct(it.productId);
           if(!p) continue;
@@ -997,26 +931,16 @@
         }
       }
 
-      // cash: warn if paid filled but not enough
       if(paymentMethod.value === "CASH" && paidAmount.value){
         const paid = Number(paidAmount.value||0);
-        if(paid < total){
-          showToast("Cash is short");
-          return;
-        }
+        if(paid < total){ showToast("Cash is short"); return; }
       }
 
       applyStockAndRecordTx();
     }
 
-    /***************
-     * Hold carts
-     ***************/
     function holdCart(){
-      if(state.cart.length === 0){
-        showToast("Nothing to hold");
-        return;
-      }
+      if(state.cart.length === 0){ showToast("Nothing to hold"); return; }
       const held = {
         id: uid("hold"),
         createdAt: nowISO(),
@@ -1030,11 +954,6 @@
       save();
       showToast("Cart held");
       clearCart();
-    }
-
-    function openHoldModal(){
-      renderHoldList();
-      holdModal.classList.add("on");
     }
 
     function renderHoldList(){
@@ -1074,7 +993,6 @@
           paymentMethod.value = h.paymentMethod || "QRIS";
           customerName.value = h.customerName || "";
           saleNote.value = h.note || "";
-          // remove hold after restore
           state.data.heldCarts = state.data.heldCarts.filter(x=>x.id!==id);
           save();
           showToast("Restored");
@@ -1095,9 +1013,11 @@
       });
     }
 
-    /***************
-     * Settings
-     ***************/
+    function openHoldModal(){
+      renderHoldList();
+      holdModal.classList.add("on");
+    }
+
     function openSettings(){
       el("setStoreName").value = state.data.store.name || "";
       el("setLowStock").value = String(state.data.store.lowStockThreshold ?? 5);
@@ -1144,12 +1064,8 @@
       wrap.querySelectorAll("[data-delcat]").forEach(b=>{
         b.onclick = ()=>{
           const id = b.getAttribute("data-delcat");
-          // remove category
           state.data.categories = state.data.categories.filter(c=>c.id!==id);
-          // products become uncategorized
-          state.data.products.forEach(p=>{
-            if(p.categoryId === id) p.categoryId = "";
-          });
+          state.data.products.forEach(p=>{ if(p.categoryId === id) p.categoryId = ""; });
           save();
           showToast("Category deleted");
           refreshCategorySelects();
@@ -1199,7 +1115,6 @@
         b.onclick = ()=>{
           const id = b.getAttribute("data-del");
           state.data.products = state.data.products.filter(p=>p.id!==id);
-          // also remove from cart
           state.cart = state.cart.filter(i=>i.productId!==id);
           save();
           showToast("Product deleted");
@@ -1220,7 +1135,6 @@
           if(price === null) return;
           const stock = prompt("Stock:", String(p.stock));
           if(stock === null) return;
-
           p.name = String(name).trim() || p.name;
           p.price = Number(price) || 0;
           p.stock = Math.max(0, Number(stock)||0);
@@ -1250,11 +1164,7 @@
       const price = Number(el("pPrice").value || 0);
       const cat = el("pCategory").value;
       const stock = Number(el("pStock").value || 0);
-
-      if(!name){
-        showToast("Name required");
-        return;
-      }
+      if(!name){ showToast("Name required"); return; }
 
       state.data.products.push({
         id: uid("p"),
@@ -1263,6 +1173,7 @@
         categoryId: cat || "",
         stock: Math.max(0, stock)
       });
+
       el("pName").value = "";
       el("pPrice").value = "";
       el("pStock").value = "";
@@ -1273,7 +1184,6 @@
     }
 
     function seedDemo(){
-      // Bakery template (you can replace names/prices)
       state.data.categories = [
         { id: "cat_roti_isi", name: "Roti Isi" },
         { id: "cat_tawar", name: "Tawar" },
@@ -1318,7 +1228,6 @@
         try{
           const txt = await file.text();
           const data = JSON.parse(txt);
-          // minimal validation
           if(!data || typeof data !== "object") throw new Error("Invalid JSON");
           data.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
           data.categories ||= [];
@@ -1329,7 +1238,7 @@
           save();
           showToast("Imported");
           renderAll();
-          openSettings(); // refresh view
+          openSettings();
         }catch(e){
           alert("Import failed: " + e.message);
         }
@@ -1350,11 +1259,7 @@
       renderAll();
     }
 
-    /***************
-     * Reports
-     ***************/
     function openReports(){
-      // default date empty
       el("filterDate").value = "";
       renderReports();
       reportsModal.classList.add("on");
@@ -1377,7 +1282,6 @@
 
     function renderReports(){
       const txs = filteredTx();
-
       let sales = 0, returns = 0;
       txs.forEach(t=>{
         if(t.type === "SALE") sales += Number(t.total||0);
@@ -1398,10 +1302,7 @@
     }
 
     function renderDailySummaryTable(txs){
-      // Build: date -> itemName -> qtySoldNet
-      // SALE adds qty, RETUR subtracts qty
       const map = new Map();
-
       for(const t of txs){
         const sign = (t.type === "SALE") ? 1 : -1;
         const day = t.date || (t.createdAt ? t.createdAt.slice(0,10) : "unknown");
@@ -1413,7 +1314,6 @@
         }
       }
 
-      // Flatten into rows sorted by date desc
       const days = Array.from(map.keys()).sort().reverse();
       const rows = [];
       days.forEach(day=>{
@@ -1504,16 +1404,10 @@
     function exportCSV(){
       const txs = state.data.transactions.slice().reverse();
       const rows = [];
-      rows.push([
-        "id","createdAt","date","type","paymentMethod","total","paidAmount","customerName","note","items"
-      ]);
+      rows.push(["id","createdAt","date","type","paymentMethod","total","paidAmount","customerName","note","items"]);
       txs.forEach(t=>{
         const items = (t.items||[]).map(i=>`${i.qty}x ${i.name}`).join(" | ");
-        rows.push([
-          t.id, t.createdAt, t.date, t.type, t.paymentMethod, t.total,
-          t.paidAmount ?? "", t.customerName ?? "", (t.note ?? "").replace(/\n/g," "),
-          items
-        ]);
+        rows.push([t.id, t.createdAt, t.date, t.type, t.paymentMethod, t.total, t.paidAmount ?? "", t.customerName ?? "", (t.note ?? "").replace(/\n/g," "), items]);
       });
 
       const csv = rows.map(r=>r.map(v=>{
@@ -1533,37 +1427,23 @@
     function exportXLSX(){
       const txs = state.data.transactions.slice().reverse();
       const txSheet = txs.map(t=>({
-        id: t.id,
-        createdAt: t.createdAt,
-        date: t.date,
-        type: t.type,
-        paymentMethod: t.paymentMethod,
-        total: t.total,
-        paidAmount: t.paidAmount ?? "",
-        customerName: t.customerName ?? "",
-        note: t.note ?? ""
+        id: t.id, createdAt: t.createdAt, date: t.date, type: t.type,
+        paymentMethod: t.paymentMethod, total: t.total, paidAmount: t.paidAmount ?? "",
+        customerName: t.customerName ?? "", note: t.note ?? ""
       }));
 
       const itemsSheet = [];
       txs.forEach(t=>{
         (t.items||[]).forEach(it=>{
           itemsSheet.push({
-            txId: t.id,
-            date: t.date,
-            type: t.type,
-            paymentMethod: t.paymentMethod,
-            itemName: it.name,
-            qty: it.qty,
-            price: it.price,
+            txId: t.id, date: t.date, type: t.type, paymentMethod: t.paymentMethod,
+            itemName: it.name, qty: it.qty, price: it.price,
             lineTotal: Number(it.qty||0)*Number(it.price||0),
             itemNote: it.note || ""
           });
         });
       });
 
-      // Daily summary net
-      const temp = document.createElement("div");
-      // reuse computation from current filter? better full: compute from all tx
       const map = new Map();
       for(const t of txs){
         const sign = (t.type === "SALE") ? 1 : -1;
@@ -1589,9 +1469,6 @@
       XLSX.writeFile(wb, `ib-pos-${todayYMD()}.xlsx`);
     }
 
-    /***************
-     * Mode toggles
-     ***************/
     function syncModeButtons(){
       modeSale.classList.toggle("on", state.ui.mode === "SALE");
       modeReturn.classList.toggle("on", state.ui.mode === "RETUR");
@@ -1601,9 +1478,6 @@
         : "RETUR mode: stock increases on checkout.";
     }
 
-    /***************
-     * Render all
-     ***************/
     function renderAll(){
       state.data.store ||= { name:"Indonesian Bakery POS", lowStockThreshold:5 };
       storeName.textContent = state.data.store.name || "Indonesian Bakery POS";
@@ -1612,15 +1486,12 @@
       renderCart();
     }
 
-    /***************
-     * Events
-     ***************/
-    el("btnSettings").onclick = openSettings;
-    el("btnReports").onclick = openReports;
-
     document.querySelectorAll("[data-close]").forEach(b=>{
       b.onclick = ()=> el(b.getAttribute("data-close")).classList.remove("on");
     });
+
+    el("btnSettings").onclick = openSettings;
+    el("btnReports").onclick = openReports;
 
     el("btnClearCart").onclick = ()=>{
       if(state.cart.length===0) return;
@@ -1628,49 +1499,31 @@
       clearCart();
     };
 
-    searchInput.oninput = ()=>{
-      state.ui.search = searchInput.value;
-      renderProducts();
-    };
+    searchInput.oninput = ()=>{ state.ui.search = searchInput.value; renderProducts(); };
 
     modeSale.onclick = ()=>{
       state.ui.mode = "SALE";
       syncModeButtons();
-      // validate cart quantities against stock
       state.cart = state.cart.filter(it=>{
         const p = getProduct(it.productId);
         if(!p) return false;
-        if(it.qty > Number(p.stock||0)){
-          it.qty = Math.max(1, Number(p.stock||0));
-        }
+        if(it.qty > Number(p.stock||0)) it.qty = Math.max(1, Number(p.stock||0));
         return it.qty > 0;
       });
       renderCart();
     };
-
-    modeReturn.onclick = ()=>{
-      state.ui.mode = "RETUR";
-      syncModeButtons();
-      renderCart();
-    };
+    modeReturn.onclick = ()=>{ state.ui.mode = "RETUR"; syncModeButtons(); renderCart(); };
 
     paymentMethod.onchange = refreshChangeHint;
     paidAmount.oninput = refreshChangeHint;
 
     el("btnCheckout").onclick = checkout;
     el("btnHold").onclick = ()=>{
-      // first click opens modal if already have holds and cart empty
-      if(state.cart.length===0 && (state.data.heldCarts||[]).length>0){
-        openHoldModal();
-        return;
-      }
-      // otherwise hold current cart
+      if(state.cart.length===0 && (state.data.heldCarts||[]).length>0){ openHoldModal(); return; }
       holdCart();
-      // open hold list after holding
       openHoldModal();
     };
 
-    // Settings actions
     el("btnAddCategory").onclick = addCategory;
     el("btnAddProduct").onclick = addProduct;
     el("btnSeedDemo").onclick = seedDemo;
@@ -1692,22 +1545,15 @@
     el("btnImportData").onclick = importJSON;
     el("btnResetAll").onclick = resetAll;
 
-    // Reports actions
     el("filterDate").onchange = renderReports;
     el("btnClearTx").onclick = clearTransactions;
     el("btnExportCSV").onclick = exportCSV;
     el("btnExportXLSX").onclick = exportXLSX;
 
-    // close modal when tap outside
     [settingsModal, reportsModal, holdModal].forEach(m=>{
-      m.addEventListener("click", (e)=>{
-        if(e.target === m) m.classList.remove("on");
-      });
+      m.addEventListener("click", (e)=>{ if(e.target === m) m.classList.remove("on"); });
     });
 
-    /***************
-     * Utils: safe HTML
-     ***************/
     function escapeHtml(str){
       return String(str ?? "")
         .replaceAll("&","&amp;")
@@ -1716,18 +1562,11 @@
         .replaceAll('"',"&quot;")
         .replaceAll("'","&#039;");
     }
-    function escapeAttr(str){
-      // for input value attrs
-      return escapeHtml(str).replaceAll("\n"," ");
-    }
+    function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
 
-    /***************
-     * Boot
-     ***************/
     syncModeButtons();
     renderAll();
     setStatus(true, "Ready");
-
   </script>
 </body>
 </html>
